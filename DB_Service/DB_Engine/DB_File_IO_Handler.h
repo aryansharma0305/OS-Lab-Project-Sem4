@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L 
+
 #ifndef DB_FILE_IO_HANDLER_H
 #define DB_FILE_IO_HANDLER_H
 
@@ -8,13 +10,13 @@
 
 #define DB_OPEN 0
 #define DB_CLOSE 1
-
+#include <pthread.h>
+#include <string.h>
 
 struct index{
     int key;
     int offset;
     int is_deleted; 
-    
 };
 
 
@@ -49,15 +51,20 @@ struct dbinfo{
     struct index index_orders[1000]; 
     struct index index_menu[1000];
     struct index index_tables[1000];
+
+    pthread_rwlock_t orders_rwlock[1000];
+    pthread_rwlock_t menu_rwlock[1000];
+    pthread_rwlock_t tables_rwlock[1000];
 };
 
 
 
 int db_init(struct dbinfo* db_info);
 
-int db_insert(struct dbinfo* db_info, int type, void* record);
-int db_update(struct dbinfo* db_info, int type, int key, void* record_in);
-int db_delete(struct dbinfo* db_info, int type, int key);
+int db_insert(struct dbinfo* db_info, int type, void* record, int* assigned_key, char* error_msg);
+
+int db_update(struct dbinfo* db_info, int type, int key, void* record_in, char* error_msg);
+int db_delete(struct dbinfo* db_info, int type, int key, char* error_msg);
 int db_read(struct dbinfo* db_info, int type, int key, void* record_out);
 
 #endif

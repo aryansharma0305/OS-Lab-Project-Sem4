@@ -1,63 +1,75 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#define DB_OP_INSERT 1
+#define DB_OP_UPDATE 2
+#define DB_OP_DELETE 3
+#define DB_OP_READ   4
 
-struct orders
-{
-    int orderID;
-    char name[50];
-    char phone[11];
-    char email[50];
-    int tableID;
-    int menuItemsIDAndQuantity[100];   // I am thinking of puting the menu item ID and quantity in the same array, like [menuItemID1, quantity1, menuItemID2, quantity2,...]
-    // also I am assuming a person can only order 50 unique items in one orde
-    char orderTime[6]; // HHMMFormat
-    char orderDate[9]; // DDMMYYYYFormat    
-    float totalBill;
-    
+#define DB_STATUS_SUCCESS       0
+#define DB_STATUS_FAILURE       1
+#define DB_STATUS_NOT_FOUND     2
+
+#define DB_MAX_ORDER_ITEMS 50
+
+
+#define SUCCESS 0
+#define FAILURE -1
+#define REC_NOT_FOUND 1
+
+
+struct order_item {
+    int menuItemID;
+    int quantity;
 };
 
+struct orders {
+    int               orderID;
+    char              name[50];
+    char              phone[16];
+    char              email[50];
+    int               tableID;
+    struct order_item items[DB_MAX_ORDER_ITEMS];
+    int               num_items;
+    char              orderTime[9];   // HH:MM:SS
+    char              orderDate[11];  // YYYY-MM-DD
+    float             totalBill;
+};
 
-
-
-
-struct menu
-{
-    int itemID;
-    char itemName[50];
+struct menu {
+    int   itemID;
+    char  itemName[50];
     float price;
 };
 
-
-
-
-
-struct tables
-{
+struct tables {
     int tableID;
     int capacity;
-    int isOccupied; // 0 for false, 1 for true
+    int isOccupied;
 };
 
-
-
-
-
-struct msg_buffer{
-
-    long msg_type;  // This will signify the type of query like read, delete, update, insert.
-    
-    long load_type; // Since there can be multiple tables?, this will signify the table type like order, menu, table. 
-
-    long reply_to; // something like uuid - will see later what to do about it.
-
-    union 
-    {        
-        struct orders orders;
-        struct menu menu;
-        struct tables tables;   
-    }payload;
-
+struct msg_request {
+    long msg_type;    // always 1 — any worker picks it up
+    long reply_to;    // unique request ID — worker copies this to reply msg_type
+    int  operation;   // DB_OP_*
+    int  db_id;     // 1=orders 2=menu 3=tables
+    int  key;         // used by update/delete/read to identify the record
+    union {
+        struct orders  orders;
+        struct menu    menu;
+        struct tables  tables;
+    } payload;        // used by insert/update
 };
 
+struct msg_response {
+    long msg_type;
+    int  status;
+    int  assigned_key;   // ← populated on INSERT, -1 otherwise
+    char error_msg[256];
+    union {
+        struct orders  orders;
+        struct menu    menu;
+        struct tables  tables;
+    } payload;
+};
 #endif

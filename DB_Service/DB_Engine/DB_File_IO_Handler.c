@@ -7,6 +7,8 @@
 #include "DB_File_IO_Handler.h"
 #include "../structs.h"
 
+#include <ctype.h>  
+
 extern pthread_mutex_t db_mutex_db_info; 
 
 
@@ -598,4 +600,143 @@ int db_read(struct dbinfo* db_info, int type, int key, void* record_out) {
 
     pthread_rwlock_unlock(&target_rwlock_array[target_slot]);
     return SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+// =========================================================================================
+
+
+
+
+
+// Case-insensitive string compare helper
+static int str_eq_nocase(const char* a, const char* b) {
+    while (*a && *b) {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b))
+            return 0;
+        a++;
+        b++;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+
+// Returns 1 if the full record matches the partial struct given the mask
+static int orders_match(struct orders* full, struct orders* partial, unsigned int mask) {
+    if ((mask & ORDER_MATCH_NAME)       && !str_eq_nocase(full->name,      partial->name))      return 0;
+    if ((mask & ORDER_MATCH_PHONE)      && !str_eq_nocase(full->phone,     partial->phone))     return 0;
+    if ((mask & ORDER_MATCH_EMAIL)      && !str_eq_nocase(full->email,     partial->email))     return 0;
+    if ((mask & ORDER_MATCH_TABLE_ID)   && full->tableID   != partial->tableID)                 return 0;
+    if ((mask & ORDER_MATCH_ORDER_TIME) && !str_eq_nocase(full->orderTime, partial->orderTime)) return 0;
+    if ((mask & ORDER_MATCH_ORDER_DATE) && !str_eq_nocase(full->orderDate, partial->orderDate)) return 0;
+    if ((mask & ORDER_MATCH_TOTAL_BILL) && full->totalBill != partial->totalBill)               return 0;
+    return 1;
+}
+
+static int menu_match(struct menu* full, struct menu* partial, unsigned int mask) {
+    if ((mask & MENU_MATCH_NAME)  && !str_eq_nocase(full->itemName, partial->itemName)) return 0;
+    if ((mask & MENU_MATCH_PRICE) && full->price != partial->price)                     return 0;
+    return 1;
+}
+
+static int tables_match(struct tables* full, struct tables* partial, unsigned int mask) {
+    if ((mask & TABLES_MATCH_CAPACITY)    && full->capacity   != partial->capacity)   return 0;
+    if ((mask & TABLES_MATCH_IS_OCCUPIED) && full->isOccupied != partial->isOccupied) return 0;
+    return 1;
+}
+
+
+// =============================================================================
+
+int db_find(struct dbinfo* db_info, int type, void* partial,
+            unsigned int match_mask, void* record_out) {
+
+    struct index*     target_index_array;
+    pthread_rwlock_t* target_rwlock_array;
+    int               target_record_size;
+    int               target_fd;
+    int               target_num_records;
+
+    pthread_mutex_lock(&db_mutex_db_info);
+
+    if (type == 1) {
+        target_index_array  = db_info->index_orders;
+        target_rwlock_array = db_info->orders_rwlock;
+        target_record_size  = db_info->record_size_orders;
+        target_fd           = db_info->fd_orders;
+        target_num_records  = db_info->num_records_orders;
+    }
+    else if (type == 2) {
+        target_index_array  = db_info->index_menu;
+        target_rwlock_array = db_info->menu_rwlock;
+        target_record_size  = db_info->record_size_menu;
+        target_fd           = db_info->fd_menu;
+        target_num_records  = db_info->num_records_menu;
+    }
+    else if (type == 3) {
+        target_index_array  = db_info->index_tables;
+        target_rwlock_array = db_info->tables_rwlock;
+        target_record_size  = db_info->record_size_tables;
+        target_fd           = db_info->fd_tables;
+        target_num_records  = db_info->num_records_tables;
+    }
+    else {
+        pthread_mutex_unlock(&db_mutex_db_info);
+        return FAILURE;
+    }
+
+    // Scan all live slots looking for a match
+    for (int i = 0; i < target_num_records; i++) {
+
+        if (target_index_array[i].is_deleted == 1)
+            continue;
+
+        off_t offset    = target_index_array[i].offset;
+        int   slot      = i;
+
+        // Acquire read lock on this slot while still holding mutex
+        pthread_rwlock_rdlock(&target_rwlock_array[slot]);
+
+        // Re-validate under the read lock
+        if (target_index_array[slot].is_deleted == 1) {
+            pthread_rwlock_unlock(&target_rwlock_array[slot]);
+            continue;
+        }
+
+        pthread_mutex_unlock(&db_mutex_db_info);
+
+        // Read the full record off disk
+        char full_record[target_record_size];
+        if (pread(target_fd, full_record, target_record_size, offset)
+                != target_record_size) {
+            pthread_rwlock_unlock(&target_rwlock_array[slot]);
+            return FAILURE;
+        }
+
+        // Check if it matches the partial struct
+        int matched = 0;
+        if      (type == 1) matched = orders_match ((struct orders*) full_record, partial, match_mask);
+        else if (type == 2) matched = menu_match   ((struct menu*)   full_record, partial, match_mask);
+        else                matched = tables_match ((struct tables*) full_record, partial, match_mask);
+
+        pthread_rwlock_unlock(&target_rwlock_array[slot]);
+
+        if (matched) {
+            memcpy(record_out, full_record, target_record_size);
+            return SUCCESS;
+        }
+
+        // Re-acquire mutex to safely inspect the next slot
+        pthread_mutex_lock(&db_mutex_db_info);
+    }
+
+    pthread_mutex_unlock(&db_mutex_db_info);
+    return REC_NOT_FOUND;
 }

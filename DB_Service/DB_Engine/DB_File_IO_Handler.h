@@ -67,4 +67,6 @@ int db_update(struct dbinfo* db_info, int type, int key, void* record_in, char* 
 int db_delete(struct dbinfo* db_info, int type, int key, char* error_msg);
 int db_read(struct dbinfo* db_info, int type, int key, void* record_out);
 
+int db_find(struct dbinfo* db_info, int type, void* partial_record, unsigned int match_mask, void* record_out);
+
 #endif

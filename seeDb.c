@@ -18,7 +18,9 @@ void print_orders() {
     struct index idx;
     struct orders rec;
 
-    printf("\n===== ORDERS =====\n");
+    printf("\n==================== ORDERS ====================\n");
+    printf("%-8s %-12s %-15s %-20s %-6s %-10s %-12s %-10s\n",
+           "ID", "Name", "Phone", "Email", "Tbl", "Time", "Date", "Bill");
 
     while (read(fd_idx, &idx, sizeof(idx)) == sizeof(idx)) {
         if (idx.is_deleted) continue;
@@ -28,8 +30,15 @@ void print_orders() {
             continue;
         }
 
-        printf("OrderID: %d | Table: %d | Bill: %.2f | Name: %s\n",
-               rec.orderID, rec.tableID, rec.totalBill, rec.name);
+        printf("%-8d %-12s %-15s %-20s %-6d %-10s %-12s %-10.2f\n",
+               rec.orderID,
+               rec.name,
+               rec.phone,
+               rec.email,
+               rec.tableID,
+               rec.orderTime,
+               rec.orderDate,
+               rec.totalBill);
     }
 
     close(fd_data);
@@ -48,7 +57,8 @@ void print_menu() {
     struct index idx;
     struct menu rec;
 
-    printf("\n===== MENU =====\n");
+    printf("\n==================== MENU ====================\n");
+    printf("%-8s %-20s %-10s\n", "ID", "Name", "Price");
 
     while (read(fd_idx, &idx, sizeof(idx)) == sizeof(idx)) {
         if (idx.is_deleted) continue;
@@ -58,8 +68,10 @@ void print_menu() {
             continue;
         }
 
-        printf("ItemID: %d | Name: %s | Price: %.2f\n",
-               rec.itemID, rec.itemName, rec.price);
+        printf("%-8d %-20s %-10.2f\n",
+               rec.itemID,
+               rec.itemName,
+               rec.price);
     }
 
     close(fd_data);
@@ -78,7 +90,8 @@ void print_tables() {
     struct index idx;
     struct tables rec;
 
-    printf("\n===== TABLES =====\n");
+    printf("\n==================== TABLES ====================\n");
+    printf("%-8s %-10s %-10s\n", "ID", "Capacity", "Occupied");
 
     while (read(fd_idx, &idx, sizeof(idx)) == sizeof(idx)) {
         if (idx.is_deleted) continue;
@@ -88,8 +101,10 @@ void print_tables() {
             continue;
         }
 
-        printf("TableID: %d | Capacity: %d | Occupied: %d\n",
-               rec.tableID, rec.capacity, rec.isOccupied);
+        printf("%-8d %-10d %-10d\n",
+               rec.tableID,
+               rec.capacity,
+               rec.isOccupied);
     }
 
     close(fd_data);

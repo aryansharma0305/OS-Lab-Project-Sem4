@@ -27,7 +27,6 @@ void* worker_thread(void* args) {
 
     while (1) {
 
-        // Block waiting for any request (mtype=1)
         if (msgrcv(msgid_request, &req,
                    sizeof(struct msg_request) - sizeof(long), 1, 0) == -1) {
             perror("DB_SERVICE: msgrcv failed");
@@ -37,9 +36,9 @@ void* worker_thread(void* args) {
         printf("DB_SERVICE: Thread %d picked up request reply_to=%ld op=%d db_id=%d\n",
                my_id, req.reply_to, req.operation, req.db_id);
 
-        // Clear reply and set mtype so client can filter its own reply
         memset(&reply, 0, sizeof(reply));
-        reply.msg_type = req.reply_to;
+        reply.msg_type     = req.reply_to;
+        reply.assigned_key = -1;
 
         char error_msg[256] = {0};
 
@@ -48,35 +47,40 @@ void* worker_thread(void* args) {
             case DB_OP_INSERT: {
                 int assigned_key = -1;
                 reply.status = db_insert(&db_info, req.db_id, &req.payload,
-                                        &assigned_key, error_msg);
+                                         &assigned_key, error_msg);
                 reply.assigned_key = assigned_key;
-                if (reply.status == FAILURE)
+                if (reply.status != SUCCESS)
                     strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
-            break;
-}
+                break;
+            }
 
             case DB_OP_UPDATE:
-                reply.status = db_update(&db_info, req.db_id, req.key, &req.payload, error_msg  );
-                if (reply.status == FAILURE)
+                reply.status = db_update(&db_info, req.db_id, req.key,
+                                         &req.payload, error_msg);
+                if (reply.status != SUCCESS)
                     strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
-                else if (reply.status == REC_NOT_FOUND)
-                    strncpy(reply.error_msg, "Record not found", sizeof(reply.error_msg) - 1);
                 break;
 
             case DB_OP_DELETE:
                 reply.status = db_delete(&db_info, req.db_id, req.key, error_msg);
-                if (reply.status == FAILURE)
+                if (reply.status != SUCCESS)
                     strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
-                else if (reply.status == REC_NOT_FOUND)
-                    strncpy(reply.error_msg, "Record not found", sizeof(reply.error_msg) - 1);
                 break;
 
             case DB_OP_READ:
                 reply.status = db_read(&db_info, req.db_id, req.key, &reply.payload);
-                if (reply.status == FAILURE)
-                    strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
-                else if (reply.status == REC_NOT_FOUND)
+                if (reply.status != SUCCESS)
                     strncpy(reply.error_msg, "Record not found", sizeof(reply.error_msg) - 1);
+                break;
+
+            case DB_OP_FIND:
+                // payload carries the partial struct, match_mask says which fields to compare.
+                // Result is written directly into reply.payload so it's ready to send back.
+                reply.status = db_find(&db_info, req.db_id, &req.payload, req.match_mask, &reply.payload);
+                if (reply.status == REC_NOT_FOUND)
+                    strncpy(reply.error_msg, "No match found", sizeof(reply.error_msg) - 1);
+                else if (reply.status == FAILURE)
+                    strncpy(reply.error_msg, "Find failed", sizeof(reply.error_msg) - 1);
                 break;
 
             default:
@@ -87,7 +91,6 @@ void* worker_thread(void* args) {
                 break;
         }
 
-        // Send reply — client is blocking on msgrcv with mtype=reply_to
         if (msgsnd(msgid_reply, &reply,
                    sizeof(struct msg_response) - sizeof(long), 0) == -1) {
             perror("DB_SERVICE: msgsnd failed");

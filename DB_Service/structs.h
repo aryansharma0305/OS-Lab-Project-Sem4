@@ -5,12 +5,31 @@
 #define DB_OP_UPDATE 2
 #define DB_OP_DELETE 3
 #define DB_OP_READ   4
+#define DB_OP_FIND   5 
 
 #define DB_STATUS_SUCCESS       0
 #define DB_STATUS_FAILURE       1
 #define DB_STATUS_NOT_FOUND     2
 
 #define DB_MAX_ORDER_ITEMS 50
+
+
+// Orders
+#define ORDER_MATCH_NAME       (1 << 0)
+#define ORDER_MATCH_PHONE      (1 << 1)
+#define ORDER_MATCH_EMAIL      (1 << 2)
+#define ORDER_MATCH_TABLE_ID   (1 << 3)
+#define ORDER_MATCH_ORDER_TIME (1 << 4)
+#define ORDER_MATCH_ORDER_DATE (1 << 5)
+#define ORDER_MATCH_TOTAL_BILL (1 << 6)
+
+// Menu
+#define MENU_MATCH_NAME        (1 << 0)
+#define MENU_MATCH_PRICE       (1 << 1)
+
+// Tables
+#define TABLES_MATCH_CAPACITY   (1 << 0)
+#define TABLES_MATCH_IS_OCCUPIED (1 << 1)
 
 
 #define SUCCESS 0
@@ -54,6 +73,7 @@ struct msg_request {
     int  operation;   // DB_OP_*
     int  db_id;     // 1=orders 2=menu 3=tables
     int  key;         // used by update/delete/read to identify the record
+    unsigned int match_mask; 
     union {
         struct orders  orders;
         struct menu    menu;

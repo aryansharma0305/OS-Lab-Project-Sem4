@@ -104,69 +104,63 @@
 
 
 
-
-
-
-
-
 #include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <sys/time.h>
+#include <string.h>
 
 #include "DB_Service/DB_Client/DB_Client.h"
 #include "DB_Service/structs.h"
 
+ struct db_client DbClient;
 
-struct db_client DbClient;
+void add_users() {
 
+    struct users u;
 
-void ops(){
+    // ---------------- ADMINS ----------------
+    u.role = ROLE_ADMIN;
 
-    struct users user = {
-        .username = "waiter",
-        .password = "newpassword123",
-        .role = ROLE_WAITER
-    };
+    strcpy(u.username, "admin1");
+    strcpy(u.password, "pass1");
+    db_client_insert_user(&DbClient, &u, NULL);
 
-    
-
-    struct users found_user;
-
-    int stat = db_client_find_user(&DbClient, &user, USERS_MATCH_USERNAME | USERS_MATCH_PASSWORD, &found_user);
-
-    if(stat != SUCCESS){
-        printf("User not found\n");
-        return;
-    }
-    
-
-    printf("Found user: ID=%d, username=%s, password=%s, role=%d\n",
-           found_user.userID, found_user.username, found_user.password, found_user.role);
+    strcpy(u.username, "admin2");
+    strcpy(u.password, "pass2");
+    db_client_insert_user(&DbClient, &u, NULL);
 
 
-    struct users update = found_user;
-    strcpy(update.password, "maakichu");
+    // ---------------- CHEFS ----------------
+    u.role = ROLE_CHEF;
 
-    stat = db_client_update_user(&DbClient, found_user.userID, &update);
-    if(stat != SUCCESS){
-        printf("Failed to update user\n");
-        return;
-    }
-    printf("Updated user %d's password\n", found_user.userID);
+    strcpy(u.username, "chef1");
+    strcpy(u.password, "pass1");
+    db_client_insert_user(&DbClient, &u, NULL);
 
+    strcpy(u.username, "chef2");
+    strcpy(u.password, "pass2");
+    db_client_insert_user(&DbClient, &u, NULL);
+
+
+    // ---------------- WAITERS ----------------
+    u.role = ROLE_WAITER;
+
+    strcpy(u.username, "waiter1");
+    strcpy(u.password, "pass1");
+    db_client_insert_user(&DbClient, &u, NULL);
+
+    strcpy(u.username, "waiter2");
+    strcpy(u.password, "pass2");
+    db_client_insert_user(&DbClient, &u, NULL);
+
+
+    printf("Inserted 2 admins, 2 chefs, 2 waiters\n");
 }
 
+int main() {
 
-
-int main(){
-
-
-    db_client_init(&DbClient);  // initialize the client and connect to DB service
-
-    ops();
-
-    db_client_destroy(&DbClient); // cleanup and disconnect
-
-
+        if (db_client_init(&DbClient) != SUCCESS) {
+            printf("Failed to connect to DB service\n");
+            return 1;
+        }
+    add_users();
+    return 0;
 }

@@ -1,11 +1,11 @@
 #ifndef AUTH_H
 #define AUTH_H
 
-#define ROOT_USERNAME "admin"
-#define ROOT_PASSWORD "admin123"
+#define ROOT_USERNAME "root"
+#define ROOT_PASSWORD "root"
 
-#define AUTH_SUCCESS 1
-#define AUTH_FAILURE 0
+#define AUTH_SUCCESS 0
+#define AUTH_FAILURE 1
 
 int authenticate_admin(const char* username, const char* password);
 int add_admin_user(const char* username, const char* password);

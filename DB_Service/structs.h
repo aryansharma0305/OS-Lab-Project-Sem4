@@ -41,7 +41,7 @@
 
 
 struct order_item {
-    int menuItemID;
+    struct menu item;
     int quantity;
 };
 
@@ -66,7 +66,7 @@ struct menu {
 
 struct tables {
     int tableID;
-    int capacity;
+    int capacity; // can only be 2, 4, 8, or 12
     int isOccupied;
 };
 

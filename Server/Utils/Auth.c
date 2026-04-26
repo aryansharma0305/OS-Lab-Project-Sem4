@@ -33,8 +33,7 @@ int authenticate_admin(const char* username, const char* password) {
     strcpy(user_to_search.username, username);
     strcpy(user_to_search.password, password);
 
-    int stat = db_client_find_user(&DbClient, &user_to_search,
-        USERS_MATCH_PASSWORD | USERS_MATCH_USERNAME, &user_record);
+    int stat = db_client_find_user(&DbClient, &user_to_search,USERS_MATCH_PASSWORD | USERS_MATCH_USERNAME, &user_record);
 
     if (stat == SUCCESS) {
         if (user_record.role == ROLE_ADMIN) {

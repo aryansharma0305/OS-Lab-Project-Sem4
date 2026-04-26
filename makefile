@@ -8,6 +8,8 @@ DATA_DIR    = DB_Service/Data
 SERVER_DIR = Server
 UTILS_DIR  = Server/Utils
 
+HANDLERS_DIR  = Server/Handlers
+
 
 all: db_engine demo server
 
@@ -35,12 +37,15 @@ demo: demo.c $(CLIENT_DIR)/DB_Client.c
 		-o demo
 
 
-server: $(SERVER_DIR)/Server.c $(UTILS_DIR)/Auth.c $(CLIENT_DIR)/DB_Client.c
+server: $(SERVER_DIR)/Server.c $(UTILS_DIR)/Auth.c $(CLIENT_DIR)/DB_Client.c $(HANDLERS_DIR)/guestHandler.c $(HANDLERS_DIR)/adminHandler.c $(HANDLERS_DIR)/chefHandler.c
 	@echo ">>> Building Server..."
 	$(CC) $(CFLAGS) \
 		$(SERVER_DIR)/Server.c \
 		$(UTILS_DIR)/Auth.c \
 		$(CLIENT_DIR)/DB_Client.c \
+		$(HANDLERS_DIR)/guestHandler.c \
+		$(HANDLERS_DIR)/adminHandler.c \
+		$(HANDLERS_DIR)/chefHandler.c \
 		-I$(SERVER_DIR) \
 		-I$(UTILS_DIR) \
 		-I$(CLIENT_DIR) \

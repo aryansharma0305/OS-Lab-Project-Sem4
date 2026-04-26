@@ -259,3 +259,38 @@ int db_client_find_table(struct db_client* client, struct tables* partial,
                                partial, sizeof(struct tables),
                                match_mask, record_out);
 }
+
+
+
+// =============================================================================
+// Users
+// =============================================================================
+
+int db_client_insert_user(struct db_client* client, struct users* record, int* assigned_key) {
+    return db_client_call(client, DB_OP_INSERT, 4, 0,
+                          record, sizeof(struct users), NULL, assigned_key);
+}
+
+int db_client_update_user(struct db_client* client, int key, struct users* record) {
+    return db_client_call(client, DB_OP_UPDATE, 4, key,
+                          record, sizeof(struct users), NULL, NULL);
+}
+
+int db_client_delete_user(struct db_client* client, int key) {
+    return db_client_call(client, DB_OP_DELETE, 4, key,
+                          NULL, 0, NULL, NULL);
+}
+
+int db_client_read_user(struct db_client* client, int key, struct users* record_out) {
+    return db_client_call(client, DB_OP_READ, 4, key,
+                          NULL, sizeof(struct users), record_out, NULL);
+}
+
+int db_client_find_user(struct db_client* client, struct users* partial,
+                         unsigned int match_mask, struct users* record_out) {
+    return db_client_call_find(client, 4,
+                               partial, sizeof(struct users),
+                               match_mask, record_out);
+}
+
+

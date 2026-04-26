@@ -31,6 +31,9 @@
 #define TABLES_MATCH_CAPACITY   (1 << 0)
 #define TABLES_MATCH_IS_OCCUPIED (1 << 1)
 
+// Users
+#define USERS_MATCH_USERNAME    (1 << 0)
+#define USERS_MATCH_PASSWORD    (1 << 1)
 
 #define SUCCESS 0
 #define FAILURE -1
@@ -67,17 +70,31 @@ struct tables {
     int isOccupied;
 };
 
+enum user_role {
+    ROLE_ADMIN,
+    ROLE_WAITER,
+    ROLE_CHEF
+};
+
+struct users{
+    int userID;
+    char username[50];
+    char password[50];
+    enum user_role role;
+};
+
 struct msg_request {
     long msg_type;    // always 1 — any worker picks it up
     long reply_to;    // unique request ID — worker copies this to reply msg_type
     int  operation;   // DB_OP_*
-    int  db_id;     // 1=orders 2=menu 3=tables
+    int  db_id;     // 1=orders 2=menu 3=tables 4=users
     int  key;         // used by update/delete/read to identify the record
     unsigned int match_mask; 
     union {
         struct orders  orders;
-        struct menu    menu;
-        struct tables  tables;
+        struct menu menu;
+        struct tables tables;
+        struct users   users;
     } payload;        // used by insert/update
 };
 
@@ -88,8 +105,9 @@ struct msg_response {
     char error_msg[256];
     union {
         struct orders  orders;
-        struct menu    menu;
+        struct menu   menu;
         struct tables  tables;
+        struct users users;
     } payload;
 };
 #endif

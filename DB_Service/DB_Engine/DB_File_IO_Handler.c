@@ -32,6 +32,9 @@ int db_init(struct dbinfo* db_info){
     db_info->fd_tables = open("DB_Service/Data/tables.db", O_RDWR | O_CREAT, 0666);
     if (db_info->fd_tables < 0) return FAILURE;
 
+    db_info->fd_users = open("DB_Service/Data/users.db", O_RDWR | O_CREAT, 0666);
+    if (db_info->fd_users < 0) return FAILURE;
+
 
     db_info->fd_index_orders = open("DB_Service/Data/orders.idx", O_RDWR | O_CREAT, 0666);
     if (db_info->fd_index_orders < 0) return FAILURE;
@@ -44,6 +47,7 @@ int db_init(struct dbinfo* db_info){
     db_info->fd_index_tables = open("DB_Service/Data/tables.idx", O_RDWR | O_CREAT, 0666);
     if (db_info->fd_index_tables < 0) return FAILURE;
 
+    db_info->fd_index_users = open("DB_Service/Data/users.idx", O_RDWR | O_CREAT, 0666);
 
 
 
@@ -54,6 +58,8 @@ int db_init(struct dbinfo* db_info){
     db_info->db_is_open_index_orders = DB_OPEN;
     db_info->db_is_open_index_menu = DB_OPEN;
     db_info->db_is_open_index_tables = DB_OPEN;
+    db_info->db_is_open_users = DB_OPEN;
+    db_info->db_is_open_index_users = DB_OPEN;
 
 
 
@@ -61,16 +67,20 @@ int db_init(struct dbinfo* db_info){
     db_info->record_size_orders = sizeof(struct orders);
     db_info->record_size_menu = sizeof(struct menu);
     db_info->record_size_tables = sizeof(struct tables);
+    db_info->record_size_users = sizeof(struct users);
 
 
     for(int i = 0; i < 1000; i++){
     db_info->index_orders[i].is_deleted = 1;
     db_info->index_menu[i].is_deleted = 1;
     db_info->index_tables[i].is_deleted = 1;
+    db_info->index_users[i].is_deleted = 1;
+
 
     pthread_rwlock_init(&db_info->orders_rwlock[i], NULL);
     pthread_rwlock_init(&db_info->menu_rwlock[i], NULL);
     pthread_rwlock_init(&db_info->tables_rwlock[i], NULL);
+    pthread_rwlock_init(&db_info->users_rwlock[i], NULL);
     }
 
 
@@ -99,6 +109,12 @@ int db_init(struct dbinfo* db_info){
         db_info->index_tables[db_info->num_records_tables++] = temp;
     }
 
+    db_info->num_records_users = 0;
+    lseek(db_info->fd_index_users, 0, SEEK_SET);
+    while (read(db_info->fd_index_users, &temp, sizeof(struct index)) == sizeof(struct index)) {
+        db_info->index_users[db_info->num_records_users++] = temp;
+    }
+
 
 
     //release the lock
@@ -115,109 +131,6 @@ int db_init(struct dbinfo* db_info){
 
 // =========================================================================================
 
-
-
-
-// int db_insert(struct dbinfo* db_info, int type, void* record){
-
-//     int target_fd;
-//     int target_fd_index;
-//     int target_record_size;
-//     struct index* target_index_array;
-//     pthread_rwlock_t* target_rwlock;
-//     int my_index;
-
-//     // Reserve index and lock db_info
-//     pthread_mutex_lock(&db_mutex_db_info);
-
-//     if(type == 1){
-//         my_index = db_info->num_records_orders++;
-//         target_fd = db_info->fd_orders;
-//         target_fd_index = db_info->fd_index_orders;
-//         target_record_size = db_info->record_size_orders;
-//         target_index_array = db_info->index_orders;
-//         target_rwlock = &db_info->orders_rwlock[my_index];
-//         pthread_rwlock_init(&db_info->orders_rwlock[my_index], NULL);
-//         db_info->index_orders[my_index].is_deleted = 1;
-//     }
-//     else if(type == 2){
-//         my_index = db_info->num_records_menu++;
-//         target_fd = db_info->fd_menu;
-//         target_fd_index = db_info->fd_index_menu;
-//         target_record_size = db_info->record_size_menu;
-//         target_index_array = db_info->index_menu;
-//         target_rwlock = &db_info->menu_rwlock[my_index];
-//         pthread_rwlock_init(&db_info->menu_rwlock[my_index], NULL);
-//         db_info->index_menu[my_index].is_deleted = 1;
-//     }
-//     else if(type == 3){
-//         my_index = db_info->num_records_tables++;
-//         target_fd = db_info->fd_tables;
-//         target_fd_index = db_info->fd_index_tables;
-//         target_record_size = db_info->record_size_tables;
-//         target_index_array = db_info->index_tables;
-//         target_rwlock = &db_info->tables_rwlock[my_index];
-//         pthread_rwlock_init(&db_info->tables_rwlock[my_index], NULL);
-//         db_info->index_tables[my_index].is_deleted = 1;
-//     }
-//     else{
-//         pthread_mutex_unlock(&db_mutex_db_info);
-//         return FAILURE;
-//     }
-
-//     pthread_mutex_unlock(&db_mutex_db_info);
-
-//     // Get write record lock
-//     pthread_rwlock_wrlock(target_rwlock);
-
-//     off_t offset = (off_t)target_record_size * my_index;
-
-//     // Write the record to the data file
-//     if(pwrite(target_fd, record, target_record_size, offset) != target_record_size){
-//         pthread_rwlock_unlock(target_rwlock);
-//         return FAILURE;
-//     }
-
-//     // Update in-memory index under mutex, then copy and release before disk write
-//     pthread_mutex_lock(&db_mutex_db_info);
-
-//     if(type == 1){
-//         struct orders* r = (struct orders*)record;
-//         db_info->index_orders[my_index].key = r->orderID;
-//         db_info->index_orders[my_index].offset = offset;
-//         db_info->index_orders[my_index].is_deleted = 0;
-//     }
-//     else if(type == 2){
-//         struct menu* r = (struct menu*)record;
-//         db_info->index_menu[my_index].key = r->itemID;
-//         db_info->index_menu[my_index].offset = offset;
-//         db_info->index_menu[my_index].is_deleted = 0;
-//     }
-//     else{
-//         struct tables* r = (struct tables*)record;
-//         db_info->index_tables[my_index].key = r->tableID;
-//         db_info->index_tables[my_index].offset = offset;
-//         db_info->index_tables[my_index].is_deleted = 0;
-//     }
-
-//     // Take a local copy, then release mutex before hitting disk.
-//     // Safe because target_rwlock is still held — no other thread
-//     // can touch this slot until we release it at the very end.
-//     struct index index_copy = target_index_array[my_index];
-
-//     pthread_mutex_unlock(&db_mutex_db_info);
-
-//     // Persist index entry to .idx file outside the mutex
-//     off_t idx_offset = (off_t)my_index * sizeof(struct index);
-//     if(pwrite(target_fd_index, &index_copy,
-//               sizeof(struct index), idx_offset) != sizeof(struct index)){
-//         pthread_rwlock_unlock(target_rwlock);
-//         return FAILURE;
-//     }
-
-//     pthread_rwlock_unlock(target_rwlock);
-//     return SUCCESS;
-// }
 
 
 
@@ -282,6 +195,22 @@ int db_insert(struct dbinfo* db_info, int type, void* record, int* assigned_key,
 
         ((struct tables*)record)->tableID = my_index;
         db_info->index_tables[my_index].is_deleted = 1;
+    }
+    else if (type == 4) {
+        if (db_info->num_records_users >= 1000) {
+            pthread_mutex_unlock(&db_mutex_db_info);
+            strcpy(error_msg, "Users table full");
+            return FAILURE;
+        }
+        my_index = db_info->num_records_users++;
+        target_fd = db_info->fd_users;
+        target_fd_index = db_info->fd_index_users;
+        target_record_size = db_info->record_size_users;
+        target_index_array = db_info->index_users;
+        target_rwlock = &db_info->users_rwlock[my_index];
+
+        ((struct users*)record)->userID = my_index;
+        db_info->index_users[my_index].is_deleted = 1;
     }
     else {
         pthread_mutex_unlock(&db_mutex_db_info);
@@ -375,12 +304,20 @@ int db_update(struct dbinfo* db_info, int type, int key, void* record_in, char* 
         target_fd            = db_info->fd_tables;
         target_num_records   = db_info->num_records_tables;
     }
+    else if (type == 4) {
+        target_index_array   = db_info->index_users;
+        target_rwlock_array  = db_info->users_rwlock;
+        target_record_size   = db_info->record_size_users;
+        target_fd            = db_info->fd_users;
+        target_num_records   = db_info->num_records_users;
+    }
     else {
          pthread_mutex_unlock(&db_mutex_db_info);
         strcpy(error_msg, "Invalid type");
         return FAILURE;
     }
 
+    
 
     int    found         = 0;
     int    target_slot   = -1;
@@ -459,6 +396,12 @@ int db_delete(struct dbinfo* db_info, int type, int key, char* error_msg) {
         target_rwlock_array = db_info->tables_rwlock;
         target_num_records  = db_info->num_records_tables;
         target_fd_index     = db_info->fd_index_tables;
+    }
+    else if (type == 4) {
+        target_index_array  = db_info->index_users;
+        target_rwlock_array = db_info->users_rwlock;
+        target_num_records  = db_info->num_records_users;
+        target_fd_index     = db_info->fd_index_users;
     }
     else {
         pthread_mutex_unlock(&db_mutex_db_info);
@@ -552,6 +495,13 @@ int db_read(struct dbinfo* db_info, int type, int key, void* record_out) {
         target_record_size  = db_info->record_size_tables;
         target_fd           = db_info->fd_tables;
         target_num_records  = db_info->num_records_tables;
+    }
+    else if (type == 4) {
+        target_index_array  = db_info->index_users;
+        target_rwlock_array = db_info->users_rwlock;
+        target_record_size  = db_info->record_size_users;
+        target_fd           = db_info->fd_users;
+        target_num_records  = db_info->num_records_users;
     }
     else {
          pthread_mutex_unlock(&db_mutex_db_info);
@@ -652,6 +602,12 @@ static int tables_match(struct tables* full, struct tables* partial, unsigned in
     return 1;
 }
 
+static int users_match(struct users* full, struct users* partial, unsigned int mask) {
+    if ((mask & USERS_MATCH_USERNAME) && !str_eq_nocase(full->username, partial->username)) return 0;
+    if ((mask & USERS_MATCH_PASSWORD) && !str_eq_nocase(full->password, partial->password)) return 0;
+    return 1;
+}
+
 
 // =============================================================================
 
@@ -686,6 +642,13 @@ int db_find(struct dbinfo* db_info, int type, void* partial,
         target_record_size  = db_info->record_size_tables;
         target_fd           = db_info->fd_tables;
         target_num_records  = db_info->num_records_tables;
+    }
+    else if (type == 4) {
+        target_index_array  = db_info->index_users;
+        target_rwlock_array = db_info->users_rwlock;
+        target_record_size  = db_info->record_size_users;
+        target_fd           = db_info->fd_users;
+        target_num_records  = db_info->num_records_users;
     }
     else {
         pthread_mutex_unlock(&db_mutex_db_info);
@@ -722,9 +685,10 @@ int db_find(struct dbinfo* db_info, int type, void* partial,
 
         // Check if it matches the partial struct
         int matched = 0;
-        if      (type == 1) matched = orders_match ((struct orders*) full_record, partial, match_mask);
+        if (type == 1) matched = orders_match ((struct orders*) full_record, partial, match_mask);
         else if (type == 2) matched = menu_match   ((struct menu*)   full_record, partial, match_mask);
-        else                matched = tables_match ((struct tables*) full_record, partial, match_mask);
+        else if (type == 3) matched = tables_match ((struct tables*) full_record, partial, match_mask);
+        else if (type == 4) matched = users_match ((struct users*) full_record, partial, match_mask);
 
         pthread_rwlock_unlock(&target_rwlock_array[slot]);
 

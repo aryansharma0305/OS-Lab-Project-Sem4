@@ -20,41 +20,49 @@ struct index{
 };
 
 
-// orders -> type 1 menu -> type 2 tables -> type 3
+// orders -> type 1 menu -> type 2 tables -> type 3 users -> type 4
 
 struct dbinfo{
     int fd_orders;    
     int fd_menu;
     int fd_tables;
+    int fd_users;
 
     int fd_index_orders;
     int fd_index_menu;
     int fd_index_tables;
+    int fd_index_users;
 
     int db_is_open_orders;
     int db_is_open_menu;
     int db_is_open_tables;
+    int db_is_open_users;
     int db_is_open_index_orders;
     int db_is_open_index_menu;
     int db_is_open_index_tables;
+    int db_is_open_index_users;
 
     int record_size_orders;
     int record_size_menu;
     int record_size_tables;
+    int record_size_users;
 
     int num_records_orders;
     int num_records_menu;
     int num_records_tables;
+    int num_records_users;
 
 
     // ASSUMING max of 1000 record in each table;
     struct index index_orders[1000]; 
     struct index index_menu[1000];
     struct index index_tables[1000];
+    struct index index_users[1000];
 
     pthread_rwlock_t orders_rwlock[1000];
     pthread_rwlock_t menu_rwlock[1000];
     pthread_rwlock_t tables_rwlock[1000];
+    pthread_rwlock_t users_rwlock[1000];
 };
 
 

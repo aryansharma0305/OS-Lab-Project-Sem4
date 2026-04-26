@@ -45,6 +45,49 @@ void print_orders() {
     close(fd_idx);
 }
 
+
+void print_users() {
+    int fd_data = open("DB_Service/Data/users.db", O_RDONLY);
+    int fd_idx  = open("DB_Service/Data/users.idx", O_RDONLY);
+
+    if (fd_data < 0 || fd_idx < 0) {
+        perror("users open failed");
+        return;
+    }
+
+    struct index idx;
+    struct users rec;
+
+    printf("\n==================== USERS ====================\n");
+    printf("%-8s %-20s %-20s %-10s\n", "ID", "Username", "Password", "Role");
+
+    while (read(fd_idx, &idx, sizeof(idx)) == sizeof(idx)) {
+        if (idx.is_deleted) continue;
+
+        if (pread(fd_data, &rec, sizeof(rec), idx.offset) != sizeof(rec)) {
+            perror("users read failed");
+            continue;
+        }
+
+        const char* role_str;
+        switch (rec.role) {
+            case ROLE_ADMIN:  role_str = "ADMIN"; break;
+            case ROLE_WAITER: role_str = "WAITER"; break;
+            case ROLE_CHEF:   role_str = "CHEF"; break;
+            default:          role_str = "UNKNOWN";
+        }
+
+        printf("%-8d %-20s %-20s %-10s\n",
+               rec.userID,
+               rec.username,
+               rec.password,
+               role_str);
+    }
+
+    close(fd_data);
+    close(fd_idx);
+}
+
 void print_menu() {
     int fd_data = open("DB_Service/Data/menu.db", O_RDONLY);
     int fd_idx  = open("DB_Service/Data/menu.idx", O_RDONLY);
@@ -115,5 +158,6 @@ int main() {
     print_orders();
     print_menu();
     print_tables();
+    print_users();
     return 0;
 }

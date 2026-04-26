@@ -93,6 +93,22 @@
 // }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -105,26 +121,50 @@
 struct db_client DbClient;
 
 
+void ops(){
+
+    struct users user = {
+        .username = "waiter",
+        .password = "newpassword123",
+        .role = ROLE_WAITER
+    };
+
+    
+
+    struct users found_user;
+
+    int stat = db_client_find_user(&DbClient, &user, USERS_MATCH_USERNAME | USERS_MATCH_PASSWORD, &found_user);
+
+    if(stat != SUCCESS){
+        printf("User not found\n");
+        return;
+    }
+    
+
+    printf("Found user: ID=%d, username=%s, password=%s, role=%d\n",
+           found_user.userID, found_user.username, found_user.password, found_user.role);
+
+
+    struct users update = found_user;
+    strcpy(update.password, "maakichu");
+
+    stat = db_client_update_user(&DbClient, found_user.userID, &update);
+    if(stat != SUCCESS){
+        printf("Failed to update user\n");
+        return;
+    }
+    printf("Updated user %d's password\n", found_user.userID);
+
+}
+
+
+
 int main(){
 
 
     db_client_init(&DbClient);  // initialize the client and connect to DB service
 
-
-
-    struct orders order1 = {
-    .orderID        = 100,
-    
-    };
-
-    struct orders order_out;
-
-    db_client_read_order(&DbClient, 3, &order_out); // read order with key=1 into order_out
-
-    printf("Found order: ID=%d, Name=%s, Phone=%s\n", order_out.orderID, order_out.name, order_out.phone);
-
-
-
+    ops();
 
     db_client_destroy(&DbClient); // cleanup and disconnect
 

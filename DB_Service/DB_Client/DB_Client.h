@@ -49,4 +49,15 @@ int db_client_read_table  (struct db_client* client, int key, struct tables* rec
 int db_client_find_table  (struct db_client* client, struct tables* partial,
                            unsigned int match_mask, struct tables* record_out);
 
+
+// ---------------------------------------------------------------------
+// Users
+// ---------------------------------------------------------------------
+int db_client_insert_user(struct db_client* client, struct users* record, int* assigned_key);
+int db_client_update_user(struct db_client* client, int key, struct users* record);
+int db_client_delete_user(struct db_client* client, int key);
+int db_client_read_user  (struct db_client* client, int key, struct users* record_out);
+int db_client_find_user  (struct db_client* client, struct users* partial,
+                          unsigned int match_mask, struct users* record_out);
+
 #endif

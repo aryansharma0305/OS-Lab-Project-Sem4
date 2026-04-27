@@ -22,42 +22,49 @@ void db_client_destroy(struct db_client* client);
 // ---------------------------------------------------------------------
 // Orders
 // ---------------------------------------------------------------------
-int db_client_insert_order(struct db_client* client, struct orders* record, int* assigned_key);
-int db_client_update_order(struct db_client* client, int key, struct orders* record);
-int db_client_delete_order(struct db_client* client, int key);
-int db_client_read_order  (struct db_client* client, int key, struct orders* record_out);
-int db_client_find_order  (struct db_client* client, struct orders* partial,
-                           unsigned int match_mask, struct orders* record_out);
+int db_client_insert_order          (struct db_client* client, struct orders* record, int* assigned_key);
+int db_client_update_order          (struct db_client* client, int key, struct orders* record);
+int db_client_delete_order          (struct db_client* client, int key);
+int db_client_read_order            (struct db_client* client, int key, struct orders* record_out);
+int db_client_find_order            (struct db_client* client, struct orders* partial,
+                                     unsigned int match_mask, struct orders* record_out);
+int db_client_find_and_update_order (struct db_client* client, struct orders* match_partial,
+                                     unsigned int match_mask, struct orders* new_record);
 
 // ---------------------------------------------------------------------
 // Menu
 // ---------------------------------------------------------------------
-int db_client_insert_menu(struct db_client* client, struct menu* record, int* assigned_key);
-int db_client_update_menu(struct db_client* client, int key, struct menu* record);
-int db_client_delete_menu(struct db_client* client, int key);
-int db_client_read_menu  (struct db_client* client, int key, struct menu* record_out);
-int db_client_find_menu  (struct db_client* client, struct menu* partial,
-                          unsigned int match_mask, struct menu* record_out);
+int db_client_insert_menu           (struct db_client* client, struct menu* record, int* assigned_key);
+int db_client_update_menu           (struct db_client* client, int key, struct menu* record);
+int db_client_delete_menu           (struct db_client* client, int key);
+int db_client_read_menu             (struct db_client* client, int key, struct menu* record_out);
+int db_client_find_menu             (struct db_client* client, struct menu* partial,
+                                     unsigned int match_mask, struct menu* record_out);
+int db_client_find_and_update_menu  (struct db_client* client, struct menu* match_partial,
+                                     unsigned int match_mask, struct menu* new_record);
 
 // ---------------------------------------------------------------------
 // Tables
 // ---------------------------------------------------------------------
-int db_client_insert_table(struct db_client* client, struct tables* record, int* assigned_key);
-int db_client_update_table(struct db_client* client, int key, struct tables* record);
-int db_client_delete_table(struct db_client* client, int key);
-int db_client_read_table  (struct db_client* client, int key, struct tables* record_out);
-int db_client_find_table  (struct db_client* client, struct tables* partial,
-                           unsigned int match_mask, struct tables* record_out);
-
+int db_client_insert_table          (struct db_client* client, struct tables* record, int* assigned_key);
+int db_client_update_table          (struct db_client* client, int key, struct tables* record);
+int db_client_delete_table          (struct db_client* client, int key);
+int db_client_read_table            (struct db_client* client, int key, struct tables* record_out);
+int db_client_find_table            (struct db_client* client, struct tables* partial,
+                                     unsigned int match_mask, struct tables* record_out);
+int db_client_find_and_update_table (struct db_client* client, struct tables* match_partial,
+                                     unsigned int match_mask, struct tables* new_record);
 
 // ---------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------
-int db_client_insert_user(struct db_client* client, struct users* record, int* assigned_key);
-int db_client_update_user(struct db_client* client, int key, struct users* record);
-int db_client_delete_user(struct db_client* client, int key);
-int db_client_read_user  (struct db_client* client, int key, struct users* record_out);
-int db_client_find_user  (struct db_client* client, struct users* partial,
-                          unsigned int match_mask, struct users* record_out);
+int db_client_insert_user           (struct db_client* client, struct users* record, int* assigned_key);
+int db_client_update_user           (struct db_client* client, int key, struct users* record);
+int db_client_delete_user           (struct db_client* client, int key);
+int db_client_read_user             (struct db_client* client, int key, struct users* record_out);
+int db_client_find_user             (struct db_client* client, struct users* partial,
+                                     unsigned int match_mask, struct users* record_out);
+int db_client_find_and_update_user  (struct db_client* client, struct users* match_partial,
+                                     unsigned int match_mask, struct users* new_record);
 
 #endif

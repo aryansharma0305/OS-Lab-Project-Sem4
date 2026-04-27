@@ -5,7 +5,8 @@
 #define DB_OP_UPDATE 2
 #define DB_OP_DELETE 3
 #define DB_OP_READ   4
-#define DB_OP_FIND   5 
+#define DB_OP_FIND   5
+#define DB_OP_FIND_AND_UPDATE 6
 
 #define DB_STATUS_SUCCESS       0
 #define DB_STATUS_FAILURE       1
@@ -15,34 +16,45 @@
 
 
 // Orders
-#define ORDER_MATCH_NAME       (1 << 0)
-#define ORDER_MATCH_PHONE      (1 << 1)
-#define ORDER_MATCH_EMAIL      (1 << 2)
-#define ORDER_MATCH_TABLE_ID   (1 << 3)
-#define ORDER_MATCH_ORDER_TIME (1 << 4)
-#define ORDER_MATCH_ORDER_DATE (1 << 5)
-#define ORDER_MATCH_TOTAL_BILL (1 << 6)
+#define ORDER_MATCH_ORDER_ID     (1 << 0)
+#define ORDER_MATCH_NAME       (1 << 1)
+#define ORDER_MATCH_PHONE      (1 << 2)
+#define ORDER_MATCH_EMAIL      (1 << 3)
+#define ORDER_MATCH_TABLE_ID   (1 << 4)
+#define ORDER_MATCH_ORDER_TIME (1 << 5)
+#define ORDER_MATCH_ORDER_DATE (1 << 6)
+#define ORDER_MATCH_TOTAL_BILL (1 << 7)
 
 // Menu
-#define MENU_MATCH_NAME        (1 << 0)
-#define MENU_MATCH_PRICE       (1 << 1)
+#define MENU_MATCH_ITEM_ID    (1 << 0)
+#define MENU_MATCH_NAME        (1 << 1)
+#define MENU_MATCH_PRICE       (1 << 2)
 
 // Tables
-#define TABLES_MATCH_CAPACITY   (1 << 0)
-#define TABLES_MATCH_IS_OCCUPIED (1 << 1)
+#define TABLES_MATCH_TABLE_ID   (1 << 0)
+#define TABLES_MATCH_CAPACITY   (1 << 1)
+#define TABLES_MATCH_IS_OCCUPIED (1 << 2)
 
 // Users
-#define USERS_MATCH_USERNAME    (1 << 0)
-#define USERS_MATCH_PASSWORD    (1 << 1)
+#define USERS_MATCH_USER_ID     (1 << 0)
+#define USERS_MATCH_USERNAME    (1 << 1)
+#define USERS_MATCH_PASSWORD    (1 << 2)
 
 #define SUCCESS 0
 #define FAILURE -1
 #define REC_NOT_FOUND 1
 
 
+struct menu {
+    int   itemID;
+    char  itemName[50];
+    float price;
+};
+
 struct order_item {
     struct menu item;
     int quantity;
+    int is_prepared;
 };
 
 struct orders {
@@ -56,13 +68,10 @@ struct orders {
     char              orderTime[9];   // HH:MM:SS
     char              orderDate[11];  // YYYY-MM-DD
     float             totalBill;
+    int               isBillGenerated;
 };
 
-struct menu {
-    int   itemID;
-    char  itemName[50];
-    float price;
-};
+
 
 struct tables {
     int tableID;
@@ -96,6 +105,14 @@ struct msg_request {
         struct tables tables;
         struct users   users;
     } payload;        // used by insert/update
+
+    union {
+        struct orders  orders;
+        struct menu menu;
+        struct tables tables;
+        struct users   users;
+    } payload2;       // used by find-and-update's new_record
+
 };
 
 struct msg_response {

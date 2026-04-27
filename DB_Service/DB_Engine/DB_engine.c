@@ -42,21 +42,94 @@ void* worker_thread(void* args) {
 
         char error_msg[256] = {0};
 
+        // switch (req.operation) {
+
+        //     case DB_OP_INSERT: {
+        //         int assigned_key = -1;
+        //         reply.status = db_insert(&db_info, req.db_id, &req.payload,
+        //                                  &assigned_key, error_msg);
+        //         reply.assigned_key = assigned_key;
+        //         if (reply.status != SUCCESS)
+        //             strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
+        //         break;
+        //     }
+
+        //     case DB_OP_UPDATE:
+        //         reply.status = db_update(&db_info, req.db_id, req.key,
+        //                                  &req.payload, error_msg);
+        //         if (reply.status != SUCCESS)
+        //             strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
+        //         break;
+
+        //     case DB_OP_DELETE:
+        //         reply.status = db_delete(&db_info, req.db_id, req.key, error_msg);
+        //         if (reply.status != SUCCESS)
+        //             strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
+        //         break;
+
+        //     case DB_OP_READ:
+        //         reply.status = db_read(&db_info, req.db_id, req.key, &reply.payload);
+        //         if (reply.status != SUCCESS)
+        //             strncpy(reply.error_msg, "Record not found", sizeof(reply.error_msg) - 1);
+        //         break;
+
+        //     case DB_OP_FIND:
+        //         // payload carries the partial struct, match_mask says which fields to compare.
+        //         // Result is written directly into reply.payload so it's ready to send back.
+        //         reply.status = db_find(&db_info, req.db_id, &req.payload, req.match_mask, &reply.payload);
+        //         if (reply.status == REC_NOT_FOUND)
+        //             strncpy(reply.error_msg, "No match found", sizeof(reply.error_msg) - 1);
+        //         else if (reply.status == FAILURE)
+        //             strncpy(reply.error_msg, "Find failed", sizeof(reply.error_msg) - 1);
+        //         break;
+
+        //     case DB_OP_FIND_AND_UPDATE:
+        //         reply.status = db_find_and_update(&db_info, req.db_id, &req.payload,req.match_mask, &req.payload2, error_msg);
+        //         if (reply.status != SUCCESS)
+        //             strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
+        //     break;    
+
+        //     default:
+        //         fprintf(stderr, "DB_SERVICE: Thread %d received unknown op %d\n",
+        //                 my_id, req.operation);
+        //         reply.status = FAILURE;
+        //         strncpy(reply.error_msg, "Unknown operation", sizeof(reply.error_msg) - 1);
+        //         break;
+        // }
+
+
         switch (req.operation) {
 
             case DB_OP_INSERT: {
                 int assigned_key = -1;
-                reply.status = db_insert(&db_info, req.db_id, &req.payload,
-                                         &assigned_key, error_msg);
+
+                if (req.db_id == 1)
+                    reply.status = db_insert(&db_info, req.db_id, &req.payload.orders, &assigned_key, error_msg);
+                else if (req.db_id == 2)
+                    reply.status = db_insert(&db_info, req.db_id, &req.payload.menu, &assigned_key, error_msg);
+                else if (req.db_id == 3)
+                    reply.status = db_insert(&db_info, req.db_id, &req.payload.tables, &assigned_key, error_msg);
+                else if (req.db_id == 4)
+                    reply.status = db_insert(&db_info, req.db_id, &req.payload.users, &assigned_key, error_msg);
+
                 reply.assigned_key = assigned_key;
+
                 if (reply.status != SUCCESS)
                     strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
+
                 break;
             }
 
             case DB_OP_UPDATE:
-                reply.status = db_update(&db_info, req.db_id, req.key,
-                                         &req.payload, error_msg);
+                if (req.db_id == 1)
+                    reply.status = db_update(&db_info, req.db_id, req.key, &req.payload.orders, error_msg);
+                else if (req.db_id == 2)
+                    reply.status = db_update(&db_info, req.db_id, req.key, &req.payload.menu, error_msg);
+                else if (req.db_id == 3)
+                    reply.status = db_update(&db_info, req.db_id, req.key, &req.payload.tables, error_msg);
+                else if (req.db_id == 4)
+                    reply.status = db_update(&db_info, req.db_id, req.key, &req.payload.users, error_msg);
+
                 if (reply.status != SUCCESS)
                     strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
                 break;
@@ -74,8 +147,6 @@ void* worker_thread(void* args) {
                 break;
 
             case DB_OP_FIND:
-                // payload carries the partial struct, match_mask says which fields to compare.
-                // Result is written directly into reply.payload so it's ready to send back.
                 reply.status = db_find(&db_info, req.db_id, &req.payload, req.match_mask, &reply.payload);
                 if (reply.status == REC_NOT_FOUND)
                     strncpy(reply.error_msg, "No match found", sizeof(reply.error_msg) - 1);
@@ -83,13 +154,36 @@ void* worker_thread(void* args) {
                     strncpy(reply.error_msg, "Find failed", sizeof(reply.error_msg) - 1);
                 break;
 
+            case DB_OP_FIND_AND_UPDATE:
+                if (req.db_id == 1)
+                    reply.status = db_find_and_update(&db_info, req.db_id,
+                                                    &req.payload.orders, req.match_mask,
+                                                    &req.payload2.orders, error_msg);
+                else if (req.db_id == 2)
+                    reply.status = db_find_and_update(&db_info, req.db_id,
+                                                    &req.payload.menu, req.match_mask,
+                                                    &req.payload2.menu, error_msg);
+                else if (req.db_id == 3)
+                    reply.status = db_find_and_update(&db_info, req.db_id,
+                                                    &req.payload.tables, req.match_mask,
+                                                    &req.payload2.tables, error_msg);
+                else if (req.db_id == 4)
+                    reply.status = db_find_and_update(&db_info, req.db_id,
+                                                    &req.payload.users, req.match_mask,
+                                                    &req.payload2.users, error_msg);
+
+                if (reply.status != SUCCESS)
+                    strncpy(reply.error_msg, error_msg, sizeof(reply.error_msg) - 1);
+                break;
+
             default:
-                fprintf(stderr, "DB_SERVICE: Thread %d received unknown op %d\n",
-                        my_id, req.operation);
+                fprintf(stderr, "DB_SERVICE: Unknown op %d\n", req.operation);
                 reply.status = FAILURE;
                 strncpy(reply.error_msg, "Unknown operation", sizeof(reply.error_msg) - 1);
                 break;
         }
+
+
 
         if (msgsnd(msgid_reply, &reply,
                    sizeof(struct msg_response) - sizeof(long), 0) == -1) {
@@ -99,6 +193,11 @@ void* worker_thread(void* args) {
 
     return NULL;
 }
+
+
+
+
+
 
 
 // =========================================================================================

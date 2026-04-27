@@ -77,4 +77,7 @@ int db_read(struct dbinfo* db_info, int type, int key, void* record_out);
 
 int db_find(struct dbinfo* db_info, int type, void* partial_record, unsigned int match_mask, void* record_out);
 
+// Crazyyy ATMOIC
+int db_find_and_update(struct dbinfo* db_info, int type, void* partial,unsigned int match_mask, void* new_record, char* error_msg);
+
 #endif

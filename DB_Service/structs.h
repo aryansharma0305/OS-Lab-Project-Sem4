@@ -52,6 +52,7 @@ struct menu {
 };
 
 struct order_item {
+    int orderItemID; // nothing but just the index in the order's items array (0 to DB_MAX_ORDER_ITEMS-1) 
     struct menu item;
     int quantity;
     int is_prepared;

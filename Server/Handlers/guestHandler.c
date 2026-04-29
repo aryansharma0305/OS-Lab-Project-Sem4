@@ -196,8 +196,9 @@ static void send_order(int fd, int order_id) {
 
     for (int i = 0; i < o.num_items; i++) {
         pos += snprintf(json + pos, sizeof(json) - pos,
-                        "{\"itemID\":%d,\"itemName\":\"%s\","
+                        "{\"orderItemID\":%d,\"itemID\":%d,\"itemName\":\"%s\","
                         "\"price\":%.2f,\"quantity\":%d,\"isPrepared\":%d}%s",
+                        o.items[i].orderItemID,
                         o.items[i].item.itemID,
                         o.items[i].item.itemName,
                         o.items[i].item.price,
@@ -213,17 +214,104 @@ static void send_order(int fd, int order_id) {
 
 
 
+static void order_item(int fd, int order_id, int item_id, int quantity) {
 
+    if (quantity <= 0) {
+        send(fd, "ERROR Invalid quantity\n", 23, 0);
+        return;
+    }
 
+    struct orders o;
+    int status = db_client_read_order(&DbClient, order_id, &o);
+    
+    if (status != SUCCESS) {
+        send(fd, "ERROR ORDER_NOT_FOUND\n", 22, 0);
+        return;
+    }
 
+    if (o.num_items >= DB_MAX_ORDER_ITEMS) {
+        send(fd, "ERROR Order has maximum items already\n", 38, 0);
+        return;
+    }
 
+    struct menu m;
+    status = db_client_read_menu(&DbClient, item_id, &m);
+    if (status != SUCCESS) {
+        send(fd, "ERROR ITEM_NOT_FOUND\n", 21, 0);
+        return;
+    }
 
+    int idx = o.num_items;  
 
+    o.items[idx].orderItemID = idx;
+    o.items[idx].item        = m;
+    o.items[idx].quantity    = quantity;
+    o.items[idx].is_prepared = 0;
 
+    o.num_items++;
+    o.totalBill += (m.price * quantity);
 
+    status = db_client_update_order(&DbClient, order_id, &o);
+    if (status != SUCCESS) {
+        send(fd, "ERROR Failed to update order\n", 29, 0);
+        return;
+    }
 
+    send(fd, "OK ITEM_ADDED\n", 14, 0);
+}
 
+static void generate_bill(int fd, int order_id) {
 
+    struct orders o;
+    int status = db_client_read_order(&DbClient, order_id, &o);
+
+    if (status != SUCCESS) {
+        send(fd, "ERROR ORDER_NOT_FOUND\n", 22, 0);
+        return;
+    }
+
+    if (o.isBillGenerated) {
+        send(fd, "ERROR Bill already generated\n", 29, 0);
+        return;
+    }
+
+    float total = 0.0f;
+
+    for (int i = 0; i < o.num_items; i++) {
+        total += o.items[i].item.price * o.items[i].quantity;
+    }
+
+    // update order
+    o.totalBill = total;
+    o.isBillGenerated = 1;
+
+    status = db_client_update_order(&DbClient, order_id, &o);
+    if (status != SUCCESS) {
+        send(fd, "ERROR Failed to update order\n", 29, 0);
+        return;
+    }
+
+    // free table
+    struct tables match  = { .tableID = o.tableID, .isOccupied = 1 };
+    struct tables update = { .tableID = o.tableID, .isOccupied = 0 };
+
+    status = db_client_find_and_update_table(
+        &DbClient,
+        &match,
+        TABLES_MATCH_TABLE_ID | TABLES_MATCH_IS_OCCUPIED,
+        &update
+    );
+
+    if (status != SUCCESS) {
+        send(fd, "ERROR Failed to free table\n", 27, 0);
+        return;
+    }
+
+    // send minimal response
+    char response[64];
+    snprintf(response, sizeof(response), "OK %.2f\n", total);
+    send(fd, response, strlen(response), 0);
+}
 
 
 
@@ -264,18 +352,111 @@ void guest_handler(int client_fd) {
 
         else if(strncmp(buffer,"GET_ORDER",9) == 0){
             
+            send_order(client_fd,orderID);
+
+        }
+
+        else if (strncmp(buffer,"BOOK_TABLE",10) == 0) {
+
+            if(orderID != -1){
+                send(client_fd,"ERROR You already have an active order. Cannot book another table.\n",70,0);
+                continue;
+            }
+           
             char* token = strtok(buffer," ");
             token = strtok(NULL," ");
             
             if(token == NULL){
-                send(client_fd,"ERROR Missing order_id\n",23,0);
+                send(client_fd,"ERROR Missing table_id\n",23,0);
                 continue;
             }
 
-            int order_id = atoi(token);
-            
-            send_order(client_fd,order_id);
+            int table_id = atoi(token);
 
+            token = strtok(NULL," ");
+            if(token == NULL){
+                send(client_fd,"ERROR Missing name\n",20,0);
+                continue;
+            }
+            char* name = token;
+
+            token = strtok(NULL," ");
+            if(token == NULL){
+                send(client_fd,"ERROR Missing phone\n",21,0);
+                continue;
+            }
+            char* phone = token;
+
+            token = strtok(NULL," ");
+            if(token == NULL){
+                send(client_fd,"ERROR Missing email\n",21,0);
+                continue;
+            }
+            char* email = token;
+
+            int assigned_order_id=-1;
+            int status = book_table_and_create_order(table_id,name,phone,email,&assigned_order_id);
+
+            if(status != SUCCESS){
+                send(client_fd,"ERROR Failed to book table and create order\n",45,0);
+                continue;
+            }
+
+
+            orderID=assigned_order_id;
+
+            char response[64];
+            snprintf(response, sizeof(response), "OK %d\n", assigned_order_id);
+            send(client_fd, response, strlen(response), 0);
+
+
+        }
+
+
+        else if(strncmp(buffer,"ORDER_ITEM",10) == 0){  // ORDER_ITEM <item_id> <quantity>
+            
+            if(orderID == -1){
+                send(client_fd,"ERROR No active order. Please book a table first.\n",50,0);
+                continue;
+            }
+
+            char* token = strtok(buffer," ");
+            token = strtok(NULL," ");
+            
+            if(token == NULL){
+                send(client_fd,"ERROR Missing item_id\n",22,0);
+                continue;
+            }
+
+            int item_id = atoi(token);
+
+            token = strtok(NULL," ");
+            if(token == NULL){
+                send(client_fd,"ERROR Missing quantity\n",24,0);
+                continue;
+            }
+            int quantity = atoi(token);
+            
+            order_item(client_fd,orderID,item_id,quantity);
+
+        }
+
+        else if (strncmp(buffer, "GENERATE_BILL", 13) == 0) {
+            if (orderID == -1) {
+                send(client_fd, "ERROR No active order. Please book a table first.\n", 52, 0);
+                continue;
+            }
+
+            generate_bill(client_fd, orderID);
+        }
+        else if (strcmp(buffer, "LOGOUT") == 0) {
+            send(client_fd, "OK Goodbye!\n", 12, 0);
+            if(orderID != -1){
+                generate_bill(client_fd, orderID);
+            }
+            close(client_fd);
+            printf("SERVER : Client requested to logout (fd=%d)\n", client_fd);
+            return;
         }
         else
         {

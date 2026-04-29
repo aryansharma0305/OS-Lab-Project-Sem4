@@ -11,7 +11,7 @@ UTILS_DIR  = Server/Utils
 HANDLERS_DIR  = Server/Handlers
 
 
-all: db_engine demo server
+all: db_engine server
 
 
 # --- DB Engine ---
@@ -25,16 +25,6 @@ db_engine: $(ENGINE_DIR)/DB_engine.c $(ENGINE_DIR)/DB_File_IO_Handler.c
 		-o $(ENGINE_DIR)/db_engine
 
 
-# --- Demo ---
-demo: demo.c $(CLIENT_DIR)/DB_Client.c
-	@echo ">>> Building demo..."
-	$(CC) $(CFLAGS) \
-		demo.c \
-		$(CLIENT_DIR)/DB_Client.c \
-		-I$(CLIENT_DIR) \
-		-I$(ENGINE_DIR) \
-		-I. \
-		-o demo
 
 
 server: $(SERVER_DIR)/Server.c $(UTILS_DIR)/Auth.c $(CLIENT_DIR)/DB_Client.c $(HANDLERS_DIR)/guestHandler.c $(HANDLERS_DIR)/adminHandler.c $(HANDLERS_DIR)/chefHandler.c

@@ -3,8 +3,8 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "DB_Service/DB_Client/DB_Client.h"
-#include "DB_Service/structs.h"
+#include "../DB_Service/DB_Client/DB_Client.h"
+#include "../DB_Service/structs.h"
 
 #define OUT_BUF_SIZE (1024 * 1024)  // 1 MB buffer
 

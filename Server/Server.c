@@ -5,6 +5,12 @@
 struct db_client DbClient;
 
 
+int chef_fds[1000];
+int num_chefs = 0;
+
+pthread_mutex_t chef_fds_mutex;
+
+
 
 void* handle_client(void* arg) {
 
@@ -101,7 +107,18 @@ void* handle_client(void* arg) {
         else if(strcmp(role, "CHEF") == 0) {
             if(authenticate_chef(username, password) == 0) {
                 char* response = "OK Authenticated as CHEF\n";
+                pthread_mutex_lock(&chef_fds_mutex);
+                if(num_chefs < 1000) {
+                    chef_fds[num_chefs++] = client_fd;
+                } else {
+                    char* response = "ERROR Server is full. Try again later.\n";
+                    send(client_fd, response, strlen(response), 0);
+                    close(client_fd);
+                    pthread_mutex_unlock(&chef_fds_mutex);
+                    return NULL;
+                }
                 send(client_fd, response, strlen(response), 0);
+                pthread_mutex_unlock(&chef_fds_mutex);
                 chef_handler(client_fd);
             } else {
                 char* response = "ERROR Authentication failed\n";
@@ -135,21 +152,13 @@ void* handle_client(void* arg) {
 
 
 
-
-
-
-
-
-
-
-
-
 int main() {
 
+
+    pthread_mutex_init(&chef_fds_mutex, NULL);
     
     if (db_client_init(&DbClient) != SUCCESS) {
-        fprintf(stderr, "SERVER: Failed to initialize DB client"
-                        " — is DB engine running?\n");
+        fprintf(stderr, "SERVER: Failed to initialize DB client ;  is DB engine running?\n");
         return EXIT_FAILURE;
     }
 

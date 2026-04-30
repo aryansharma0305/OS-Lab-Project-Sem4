@@ -3,7 +3,8 @@ CFLAGS  = -Wall -Wextra -g -lpthread
 
 
 ENGINE_DIR  = DB_Service/DB_Engine
-CLIENT_DIR  = DB_Service/DB_Client
+DB_CLIENT_DIR = DB_Service/DB_Client
+CLIENT_DIR  = Client
 DATA_DIR    = DB_Service/Data
 SERVER_DIR = Server
 UTILS_DIR  = Server/Utils
@@ -11,7 +12,7 @@ UTILS_DIR  = Server/Utils
 HANDLERS_DIR  = Server/Handlers
 
 
-all: db_engine server
+all: db_engine server client
 
 
 # --- DB Engine ---
@@ -27,18 +28,18 @@ db_engine: $(ENGINE_DIR)/DB_engine.c $(ENGINE_DIR)/DB_File_IO_Handler.c
 
 
 
-server: $(SERVER_DIR)/Server.c $(UTILS_DIR)/Auth.c $(CLIENT_DIR)/DB_Client.c $(HANDLERS_DIR)/guestHandler.c $(HANDLERS_DIR)/adminHandler.c $(HANDLERS_DIR)/chefHandler.c
+server: $(SERVER_DIR)/Server.c $(UTILS_DIR)/Auth.c $(DB_CLIENT_DIR)/DB_Client.c $(HANDLERS_DIR)/guestHandler.c $(HANDLERS_DIR)/adminHandler.c $(HANDLERS_DIR)/chefHandler.c
 	@echo ">>> Building Server..."
 	$(CC) $(CFLAGS) \
 		$(SERVER_DIR)/Server.c \
 		$(UTILS_DIR)/Auth.c \
-		$(CLIENT_DIR)/DB_Client.c \
+		$(DB_CLIENT_DIR)/DB_Client.c \
 		$(HANDLERS_DIR)/guestHandler.c \
 		$(HANDLERS_DIR)/adminHandler.c \
 		$(HANDLERS_DIR)/chefHandler.c \
 		-I$(SERVER_DIR) \
 		-I$(UTILS_DIR) \
-		-I$(CLIENT_DIR) \
+		-I$(DB_CLIENT_DIR) \
 		-I$(ENGINE_DIR) \
 		-I. \
 		-o server \
@@ -47,14 +48,31 @@ server: $(SERVER_DIR)/Server.c $(UTILS_DIR)/Auth.c $(CLIENT_DIR)/DB_Client.c $(H
 		
 		
 		
+client: $(CLIENT_DIR)/main.c $(DB_CLIENT_DIR)/DB_Client.c $(CLIENT_DIR)/ui_guest.c $(CLIENT_DIR)/ui_general.c $(CLIENT_DIR)/ui_chef.c $(CLIENT_DIR)/ui_admin.c
+	@echo ">>> Building Client..."
+	$(CC) $(CFLAGS) \
+		$(CLIENT_DIR)/main.c \
+		$(DB_CLIENT_DIR)/DB_Client.c \
+		$(CLIENT_DIR)/ui_guest.c \
+		$(CLIENT_DIR)/ui_general.c \
+		$(CLIENT_DIR)/ui_chef.c \
+		$(CLIENT_DIR)/ui_admin.c \
+		-I$(CLIENT_DIR) \
+		-I$(ENGINE_DIR) \
+		-I. \
+		-o client \
+		$(LDFLAGS)
+
+
+
 
 run: all stop
 	@echo ">>> Starting DB Engine in background..."
-	$(ENGINE_DIR)/db_engine & echo $$! > db_engine.pid
+	$(ENGINE_DIR)/db_engine 1> db_engine.log 2>&1 & echo $$! > db_engine.pid
 	@sleep 1
 
 	@echo ">>> Starting Socket Server..."
-	./server & echo $$! > server.pid
+	./server 2> server.log & echo $$! > server.pid
 	@sleep 1
 
 	@echo ">>> System running (DB + Server)"
@@ -85,11 +103,11 @@ stop:
 
 run_server: all stop
 	@echo ">>> Starting DB Engine in background..."
-	$(ENGINE_DIR)/db_engine & echo $$! > db_engine.pid
+	$(ENGINE_DIR)/db_engine 1> db_engine.log 2>&1 & echo $$! > db_engine.pid
 	@sleep 1
 
 	@echo ">>> Starting Socket Server..."
-	./server & echo $$! > server.pid
+	./server 1> server.log 2>&1 & echo $$! > server.pid
 	@sleep 1
 
 	@echo ">>> System running (DB + Server)"
@@ -97,12 +115,16 @@ run_server: all stop
 
 run_db: db_engine stop
 	@echo ">>> Starting DB Engine in background..."
-	$(ENGINE_DIR)/db_engine & echo $$! > db_engine.pid
+	$(ENGINE_DIR)/db_engine 1> db_engine.log 2>&1 & echo $$! > db_engine.pid
 	@sleep 1
 
 	@echo ">>> DB Engine running"
 
 
+
+run_client: client all
+	@echo ">>> Starting Client..."
+	./client
 
 
 
@@ -118,7 +140,7 @@ clean:
 	@echo ">>> Cleaning..."
 	rm -f $(ENGINE_DIR)/db_engine
 	rm -f server
-	rm -f demo
+	rm -f client
 	rm -f $(DATA_DIR)/*.db
 	rm -f $(DATA_DIR)/*.idx
 	rm -f db_engine.pid server.pid

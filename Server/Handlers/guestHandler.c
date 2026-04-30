@@ -2,6 +2,8 @@
 
 extern struct db_client DbClient;
 
+#include "chefHandler.h"
+
 
 int get_all_tables(struct tables* tables_array, int* count_out) {
 
@@ -168,6 +170,7 @@ static void send_tables(int fd) {
     }
     pos += snprintf(json + pos, sizeof(json) - pos, "]\n");
     send(fd, json, pos, 0);
+    printf("Sent tables data to client (fd=%d) %s\n", fd, json);
 }
 
 
@@ -252,10 +255,20 @@ static void order_item(int fd, int order_id, int item_id, int quantity) {
     o.totalBill += (m.price * quantity);
 
     status = db_client_update_order(&DbClient, order_id, &o);
+
+
+
     if (status != SUCCESS) {
         send(fd, "ERROR Failed to update order\n", 29, 0);
         return;
     }
+
+
+    //broadcast to chefs that a new item has been added (so they can update dashboard)
+    char message[256];
+    snprintf(message, sizeof(message), "NEW_UPDATE %d %d %s %d PENDING\n",
+             o.orderID, idx, m.itemName, o.tableID);
+    broadcast_to_chefs(message);
 
     send(fd, "OK ITEM_ADDED\n", 14, 0);
 }
@@ -285,6 +298,19 @@ static void generate_bill(int fd, int order_id) {
     o.totalBill = total;
     o.isBillGenerated = 1;
 
+
+    // also broadcast to chefs that these items are now prepared (so they can remove from dashboard)
+    char message[256];
+    for (int i = 0; i < o.num_items; i++) {
+        if(o.items[i].is_prepared) continue; 
+        o.items[i].is_prepared = 1; // mark as prepared before broadcasting
+        snprintf(message, sizeof(message), "NEW_UPDATE %d %d %s %d PREPARED\n",
+                 o.orderID, o.items[i].orderItemID, o.items[i].item.itemName, o.tableID);
+        broadcast_to_chefs(message);
+        
+    }
+
+
     status = db_client_update_order(&DbClient, order_id, &o);
     if (status != SUCCESS) {
         send(fd, "ERROR Failed to update order\n", 29, 0);
@@ -301,6 +327,7 @@ static void generate_bill(int fd, int order_id) {
         TABLES_MATCH_TABLE_ID | TABLES_MATCH_IS_OCCUPIED,
         &update
     );
+ 
 
     if (status != SUCCESS) {
         send(fd, "ERROR Failed to free table\n", 27, 0);
@@ -327,11 +354,13 @@ void guest_handler(int client_fd) {
         int recv_output = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
         if(recv_output == -1) {
             close(client_fd);
+            if(orderID != -1) generate_bill(client_fd, orderID);
             printf("SERVER: recv Failed ---> Connection closed (fd=%d)\n", client_fd);
             return;
         }
         if(recv_output == 0) {
-            printf("SERVER: Client disconnected (fd=%d)\n", client_fd);
+            if(orderID != -1) generate_bill(client_fd, orderID);
+            printf("SERVER:: Client disconnected (fd=%d)\n", client_fd);
             close(client_fd);
             return;
         }

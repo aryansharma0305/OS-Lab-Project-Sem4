@@ -40,19 +40,19 @@ void add_users() {
 
 void add_menu() {
     struct menu items[] = {
-        { .itemName = "Margherita Pizza",  .price = 12.99 },
-        { .itemName = "Pepperoni Pizza",   .price = 14.99 },
-        { .itemName = "Pasta Carbonara",   .price = 11.99 },
-        { .itemName = "Pasta Arrabiata",   .price = 10.99 },
-        { .itemName = "Caesar Salad",      .price =  8.99 },
-        { .itemName = "Garlic Bread",      .price =  4.99 },
-        { .itemName = "Grilled Chicken",   .price = 16.99 },
-        { .itemName = "Beef Burger",       .price = 13.99 },
-        { .itemName = "French Fries",      .price =  3.99 },
-        { .itemName = "Chocolate Lava Cake",.price =  6.99 },
+        { .itemName = "Margherita-Pizza",  .price = 12.99 },
+        { .itemName = "Pepperoni-Pizza",   .price = 14.99 },
+        { .itemName = "Pasta-Carbonara",   .price = 11.99 },
+        { .itemName = "Pasta-Arrabiata",   .price = 10.99 },
+        { .itemName = "Caesar-Salad",      .price =  8.99 },
+        { .itemName = "Garlic-Bread",      .price =  4.99 },
+        { .itemName = "Grilled-Chicken",   .price = 16.99 },
+        { .itemName = "Beef-Burger",       .price = 13.99 },
+        { .itemName = "French-Fries",      .price =  3.99 },
+        { .itemName = "Chocolate-Lava-Cake",.price =  6.99 },
         { .itemName = "Tiramisu",          .price =  5.99 },
         { .itemName = "Coke",              .price =  2.49 },
-        { .itemName = "Fresh Juice",       .price =  3.49 },
+        { .itemName = "Fresh-Juice",       .price =  3.49 },
         { .itemName = "Water",             .price =  1.00 },
     };
 
@@ -87,7 +87,7 @@ void add_orders() {
     // --- Order 1: Table 0, 2 items ---
     struct orders o1;
     memset(&o1, 0, sizeof(o1));
-    strcpy(o1.name,      "Alice Johnson");
+    strcpy(o1.name,      "Alice-Johnson");
     strcpy(o1.phone,     "9876543210");
     strcpy(o1.email,     "alice@example.com");
     o1.tableID         = 0;
@@ -121,7 +121,7 @@ void add_orders() {
     // --- Order 2: Table 1, 3 items ---
     struct orders o2;
     memset(&o2, 0, sizeof(o2));
-    strcpy(o2.name,      "Bob Smith");
+    strcpy(o2.name,      "Bob-Smith");
     strcpy(o2.phone,     "1234567890");
     strcpy(o2.email,     "bob@example.com");
     o2.tableID         = 1;

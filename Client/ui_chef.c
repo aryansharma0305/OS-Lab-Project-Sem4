@@ -131,14 +131,15 @@ void apply_update(char *buffer){
     char itemName[100], status[20];
 
     sscanf(buffer,
-           "NEW_UPDATE %d %d %[^0-9\n] %d %s",
-           &orderID,
-           &orderItemID,
-           itemName,
-           &tableID,
-           status);
+       "NEW_UPDATE %d %d %s %d %s",
+       &orderID,
+       &orderItemID,
+       itemName,
+       &tableID,
+       status);
 
-    // trim spaces
+
+       
     int len = strlen(itemName);
     while(len > 0 && itemName[len-1] == ' ') {
         itemName[len-1] = '\0';
@@ -279,11 +280,26 @@ static void *chef_listener(void *arg) {
         if (strncmp(buffer, "OK", 2) == 0) {
             populate_dashboard(buffer);
             render_dashboard();
-        } else if (strncmp(buffer, "NEW_UPDATE", 10) == 0) {
-            printf("\n%sUpdate received: %s%s\n", YELLOW, buffer, RESET);
-            apply_update(buffer);
+        }
+       
+        
+        else if (strncmp(buffer, "NEW_UPDATE", 10) == 0) {
+
+            printf("\n%sUpdate received:\n%s%s\n", YELLOW, buffer, RESET);
+
+            char *line = strtok(buffer, "\n");
+            while (line) {
+                if (strncmp(line, "NEW_UPDATE", 10) == 0) {
+                    apply_update(line);
+                }
+                line = strtok(NULL, "\n");
+            }
+
             render_dashboard();
-        } else if (strncmp(buffer, "ERROR", 5) == 0) {
+        }
+        
+        
+        else if (strncmp(buffer, "ERROR", 5) == 0) {
             printf("\n%s%s%s\n", RED, buffer, RESET);
         }
     }

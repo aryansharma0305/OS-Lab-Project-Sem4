@@ -25,7 +25,7 @@
 
 
 
-#define PORT            8080
+#define PORT            8000
 #define MAX_CONNECTIONS 128
 #define BACKLOG         16
 

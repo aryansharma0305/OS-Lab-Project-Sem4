@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>C Client Terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+  <style>
+    body { margin: 0; background: black; }
+    #terminal { height: 100vh; width: 100vw; }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+  <script>
+    const term = new Terminal({
+        cursorBlink: true
+    });
+
+    term.open(document.getElementById("terminal"));
+
+    const ws = new WebSocket("ws://localhost:8080");
+
+    ws.onopen = () => {
+        term.write("Connected\r\n");
+    };
+
+    ws.onmessage = (event) => {
+        term.write(event.data);
+    };
+
+    term.onData((data) => {
+        ws.send(data);
+    });
+
+    ws.onclose = () => {
+        term.write("\r\nDisconnected\r\n");
+    };
+  </script>
+</body>
+</html>
